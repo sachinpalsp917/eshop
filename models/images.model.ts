@@ -8,7 +8,7 @@ export interface ImagesDocument extends mongoose.Document {
   shopId: mongoose.Types.ObjectId;
 }
 
-const ImagesSchema = new mongoose.Schema<ImagesDocument>({
+export const ImagesSchema = new mongoose.Schema<ImagesDocument>({
   file_id: {
     type: String,
     required: true,

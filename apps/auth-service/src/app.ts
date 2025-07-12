@@ -2,6 +2,7 @@ import express, { Application } from "express";
 import errorHandler from "../../../packages/error/errorhandler";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import authRoutes from "./routes/auth.routes";
 
 const app: Application = express();
 
@@ -21,6 +22,8 @@ app.get("/healthCheck", (_, res) => {
     message: "Server is healthy!",
   });
 });
+
+app.use("/", authRoutes);
 
 app.use(errorHandler);
 export default app;

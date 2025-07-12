@@ -16,6 +16,12 @@ class BadRequestError extends AppError {
   }
 }
 
+class ValidationError extends AppError {
+  constructor(message: string = "Invalid request data") {
+    super(message, 401, "INVALID_DATA");
+  }
+}
+
 class UnauthorizedError extends AppError {
   constructor(message: string = "Unauthorized") {
     super(message, 401, "UNAUTHORIZED");
@@ -94,6 +100,7 @@ export {
   AppError,
   BadRequestError,
   UnauthorizedError,
+  ValidationError,
   ForbiddenError,
   NotFoundError,
   ConflictError,

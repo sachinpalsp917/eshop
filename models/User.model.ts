@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
-import ImagesModel, { ImagesDocument } from "./images.model";
+import { ImagesDocument, ImagesSchema } from "./images.model";
 
 export interface UserDocument extends mongoose.Document {
   id: String;
   name: string;
   email: string;
   password?: string;
-  following: string[];
-  avatar: ImagesDocument;
+  verified: boolean;
+  avatar?: ImagesDocument;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,13 +27,12 @@ const UserSchema = new mongoose.Schema<UserDocument>(
     password: {
       type: String,
     },
-    following: {
-      type: [String],
-      default: [],
+    verified: {
+      type: Boolean,
+      default: false,
     },
     avatar: {
-      type: ImagesModel,
-      required: false,
+      type: ImagesSchema,
     },
   },
   { timestamps: true }
