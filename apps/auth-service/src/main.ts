@@ -1,14 +1,35 @@
-import express from 'express';
+import "dotenv/config";
+import app from "./app";
+import { connectToDatabase } from "../../../packages/config/db";
+import { Server } from "http";
 
-const host = process.env.HOST ?? 'localhost';
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+const PORT = process.env.PORT || 6001;
+let server: Server;
+const startServer = async () => {
+  try {
+    server = app.listen(PORT, () => {
+      console.log(`🚀 MS-AUTH: Server running on port: ${PORT}`);
+      connectToDatabase();
+    });
+  } catch (error) {
+    console.error("💣 MS-AUTH: Database connection failed:", error);
+    process.exit(1);
+  }
+};
 
-const app = express();
+startServer();
 
-app.get('/', (req, res) => {
-    res.send({ 'message': 'Hello API'});
-});
+const shutdown = async () => {
+  console.log("🔒 MS-AUTH: Shutting down server gracefully...");
 
-app.listen(port, host, () => {
-    console.log(`[ ready ] http://${host}:${port}`);
-});
+  if (server) {
+    await new Promise((resolve) => server.close(resolve));
+    console.log("🔐 MS-AUTH: Server closed");
+  }
+
+  console.log("🏦 MS-AUTH: Database connection closed");
+  process.exit(0);
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
