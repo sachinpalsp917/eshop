@@ -6,3 +6,7 @@ export const registerUserSchema = z.object({
   password: z.string().min(8).max(20).optional(),
   userAgent: z.string().optional(),
 });
+
+export const verifyUserSchema = registerUserSchema.extend({
+  otp: z.string().min(4).max(4),
+});
