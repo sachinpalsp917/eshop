@@ -34,6 +34,7 @@ import {
 } from "../utils/cookies";
 import { OK } from "../../../../packages/constants/HttpStatusCode";
 import { ONE_DAY_MS, thirtyDaysFromNow } from "../../../../packages/Date/date";
+import z from "zod";
 
 // register a user
 export const registerHandler = catchError(async (req, res, next) => {
@@ -192,5 +193,26 @@ export const logoutUser = catchError(async (req, res, next) => {
 
   clearAuthCookies(res).status(OK).json({
     message: "Logout successful",
+  });
+});
+
+// user forgot password
+export const forgotPasswordUser = catchError(async (req, res, next) => {
+  const emailSchema = z.object({ email: z.email(req.body).min(3).max(255) });
+
+  const { email } = emailSchema.parse(req.body);
+
+  const user = await UserModel.findOne({ email });
+
+  if (!user) {
+    return next(new NotFoundError("User not found!"));
+  }
+
+  await checkOtpRestrictions(email);
+  await trackOtpRequest(email);
+  await sendOtp(user.name, email, "forgot-password");
+
+  res.status(200).json({
+    message: "OTP sent to mail. Please verify your account.",
   });
 });
