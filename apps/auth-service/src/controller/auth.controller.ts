@@ -4,6 +4,7 @@ import catchError from "../../../../packages/error/catchError";
 import {
   InvalidCredentialsError,
   NotFoundError,
+  TokenExpiredError,
   ValidationError,
 } from "../Error/AuthError";
 import {
@@ -20,11 +21,18 @@ import {
 import brcypt from "bcrypt";
 import {
   accessTokenSignOptions,
+  refreshTokenPayload,
   refreshTokenSignOptions,
   signToken,
+  verifyToken,
 } from "../utils/jwt/jwt";
-import { setAuthCookies } from "../utils/cookies";
+import {
+  accessCookieOptions,
+  refreshCookieoptions,
+  setAuthCookies,
+} from "../utils/cookies";
 import { OK } from "../../../../packages/constants/HttpStatusCode";
+import { ONE_DAY_MS, thirtyDaysFromNow } from "../../../../packages/Date/date";
 
 // register a user
 export const registerHandler = catchError(async (req, res, next) => {
@@ -57,7 +65,7 @@ export const verifyUser = catchError(async (req, res, next) => {
   const existingUser = await UserModel.findOne({ email: request.email });
 
   if (existingUser) {
-    throw new ValidationError("User already exists.");
+    return next(new ValidationError("User already exists."));
   }
 
   await verifyOtp(request.email, request.otp);
@@ -113,4 +121,62 @@ export const loginUser = catchError(async (req, res, next) => {
   setAuthCookies({ res, refreshToken, accessToken }).status(OK).json({
     message: "User logged in.",
   });
+});
+
+// refresh token user
+export const refreshUser = catchError(async (req, res, next) => {
+  const refreshToken = (await req.cookies["refresh-token"]) as
+    | string
+    | undefined;
+
+  const { ...payload } = await verifyToken<refreshTokenPayload>(
+    refreshToken as string,
+    {
+      secret: refreshTokenSignOptions.secret,
+    }
+  );
+
+  if (!payload) {
+    return next(new TokenExpiredError("Invalid refresh token"));
+  }
+
+  const session = await SessionModel.findById(payload.payload?.sessionId);
+  console.log(session);
+  const now = Date.now();
+  if (!(session && session.expiresAt.getTime() > now)) {
+    return next(new TokenExpiredError("Session expired"));
+  }
+
+  let sessionExpiry = session?.expiresAt;
+
+  // refresh the session if it expires in 24 hours
+  const sessionNeedsRefresh =
+    sessionExpiry.getTime()! - Date.now() <= ONE_DAY_MS;
+
+  if (sessionNeedsRefresh) {
+    sessionExpiry = thirtyDaysFromNow();
+    await session?.save();
+  }
+
+  const newRefreshToken = sessionNeedsRefresh
+    ? signToken({ sessionId: session?._id as string }, refreshTokenSignOptions)
+    : undefined;
+
+  const userId = String(session?.userId);
+  const newAccessToken = signToken(
+    {
+      sessionId: session?._id as string,
+      userId,
+    },
+    accessTokenSignOptions
+  );
+
+  if (newRefreshToken) {
+    res.cookie("refresh-token", refreshToken, refreshCookieoptions);
+  }
+
+  res
+    .status(OK)
+    .cookie("access-token", newAccessToken, accessCookieOptions)
+    .json({ message: "Access Token Refreshed" });
 });
