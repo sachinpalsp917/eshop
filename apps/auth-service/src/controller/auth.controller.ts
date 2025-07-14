@@ -2,6 +2,7 @@ import { SessionModel } from "../../../../models/session.model";
 import { UserModel } from "../../../../models/User.model";
 import catchError from "../../../../packages/error/catchError";
 import {
+  ConflictError,
   InvalidCredentialsError,
   NotFoundError,
   TokenExpiredError,
@@ -227,4 +228,34 @@ export const forgotPasswordOtp = catchError(async (req, res, next) => {
   res
     .status(200)
     .json({ message: "OTP verified. You can now reset your password." });
+});
+
+// reset user password
+export const resetUserPassword = catchError(async (req, res, next) => {
+  const request = forgotPasswordSchema.parse(req.body);
+
+  const user = await UserModel.findOne({ email: request.email });
+
+  if (!user) {
+    return next(new ValidationError("User not found"));
+  }
+
+  // new password should not be same as old password
+  const isMatch = await brcypt.compare(request.password!, user.password!);
+
+  if (isMatch)
+    return next(
+      new ConflictError("New password cannot be same as old password.")
+    );
+
+  const hashedPassword = await brcypt.hash(request.password!, 12);
+
+  await UserModel.findByIdAndUpdate(
+    { _id: user._id },
+    { password: hashedPassword }
+  );
+
+  clearAuthCookies(res).status(OK).json({
+    message: "Password updated successfully",
+  });
 });

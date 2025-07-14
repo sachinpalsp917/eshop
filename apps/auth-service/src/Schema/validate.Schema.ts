@@ -16,4 +16,5 @@ export const verifyUserSchema = registerUserSchema.extend({
 export const forgotPasswordSchema = z.object({
   email: z.email().min(3).max(255).optional(),
   otp: z.string().min(4).max(4).optional(),
+  password: z.string().min(8).max(20).optional(),
 });
