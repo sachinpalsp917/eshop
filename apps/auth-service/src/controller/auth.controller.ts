@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from "../Error/AuthError";
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerUserSchema,
   verifyUserSchema,
@@ -215,4 +216,15 @@ export const forgotPasswordUser = catchError(async (req, res, next) => {
   res.status(200).json({
     message: "OTP sent to mail. Please verify your account.",
   });
+});
+
+// verify forgot password otp
+export const forgotPasswordOtp = catchError(async (req, res, next) => {
+  const request = forgotPasswordSchema.parse(req.body);
+
+  await verifyOtp(request.email!, request.otp!);
+
+  res
+    .status(200)
+    .json({ message: "OTP verified. You can now reset your password." });
 });
