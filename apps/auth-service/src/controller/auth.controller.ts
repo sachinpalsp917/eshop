@@ -28,6 +28,7 @@ import {
 } from "../utils/jwt/jwt";
 import {
   accessCookieOptions,
+  clearAuthCookies,
   refreshCookieoptions,
   setAuthCookies,
 } from "../utils/cookies";
@@ -141,7 +142,6 @@ export const refreshUser = catchError(async (req, res, next) => {
   }
 
   const session = await SessionModel.findById(payload.payload?.sessionId);
-  console.log(session);
   const now = Date.now();
   if (!(session && session.expiresAt.getTime() > now)) {
     return next(new TokenExpiredError("Session expired"));
@@ -179,4 +179,18 @@ export const refreshUser = catchError(async (req, res, next) => {
     .status(OK)
     .cookie("access-token", newAccessToken, accessCookieOptions)
     .json({ message: "Access Token Refreshed" });
+});
+
+// logout user
+export const logoutUser = catchError(async (req, res, next) => {
+  const accessToken = req.cookies["access-token"] as string | undefined;
+  const payload = verifyToken(accessToken || "")?.payload;
+
+  if (payload) {
+    await SessionModel.findByIdAndDelete(payload.sessionId);
+  }
+
+  clearAuthCookies(res).status(OK).json({
+    message: "Logout successful",
+  });
 });

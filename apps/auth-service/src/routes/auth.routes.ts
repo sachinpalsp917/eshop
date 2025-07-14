@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   loginUser,
+  logoutUser,
   refreshUser,
   registerHandler,
   verifyUser,
@@ -12,5 +13,6 @@ authRoutes.post("/register", registerHandler);
 authRoutes.post("/verify", verifyUser);
 authRoutes.post("/login", loginUser);
 authRoutes.get("/refresh", refreshUser);
+authRoutes.get("/logout", logoutUser);
 
 export default authRoutes;
