@@ -1,7 +1,13 @@
+import { SessionModel } from "../../../../models/session.model";
 import { UserModel } from "../../../../models/User.model";
 import catchError from "../../../../packages/error/catchError";
-import { ValidationError } from "../Error/AuthError";
 import {
+  InvalidCredentialsError,
+  NotFoundError,
+  ValidationError,
+} from "../Error/AuthError";
+import {
+  loginSchema,
   registerUserSchema,
   verifyUserSchema,
 } from "../Schema/validate.Schema";
@@ -11,7 +17,14 @@ import {
   trackOtpRequest,
   verifyOtp,
 } from "../service/auth.service";
-import brcypt from "bcryptjs";
+import brcypt from "bcrypt";
+import {
+  accessTokenSignOptions,
+  refreshTokenSignOptions,
+  signToken,
+} from "../utils/jwt/jwt";
+import { setAuthCookies } from "../utils/cookies";
+import { OK } from "../../../../packages/constants/HttpStatusCode";
 
 // register a user
 export const registerHandler = catchError(async (req, res, next) => {
@@ -60,5 +73,44 @@ export const verifyUser = catchError(async (req, res, next) => {
     success: true,
     message: "User created successfully.",
     newUser,
+  });
+});
+
+// login a user
+export const loginUser = catchError(async (req, res, next) => {
+  const request = loginSchema.parse({
+    ...req.body,
+    userAgent: req.headers["user-agent"],
+  });
+
+  const user = await UserModel.findOne({ email: request.email });
+
+  if (!user) {
+    return next(new NotFoundError("User doesn't exist!"));
+  }
+
+  const isMatch = await brcypt.compare(request.password!, user.password!);
+
+  if (!isMatch)
+    return next(new InvalidCredentialsError("Invalid email or password"));
+
+  // create session
+  const session = await SessionModel.create({
+    userId: user._id,
+    userAgent: request.userAgent,
+  });
+
+  // create refresh and access token
+  const sessionInfo = {
+    sessionId: session._id as string,
+  };
+  const refreshToken = signToken(sessionInfo, refreshTokenSignOptions);
+  const accessToken = signToken(
+    { ...sessionInfo, userId: user._id as string },
+    accessTokenSignOptions
+  );
+
+  setAuthCookies({ res, refreshToken, accessToken }).status(OK).json({
+    message: "User logged in.",
   });
 });

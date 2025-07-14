@@ -14,3 +14,5 @@ export const SMTP_PORT = getEnv("SMTP_PORT", "587");
 export const SMTP_SERVICE = getEnv("SMTP_SERVICE");
 export const SMTP_USER = getEnv("SMTP_USER");
 export const SMTP_PASS = getEnv("SMTP_PASS");
+export const JWT_REFRESH_SECRET = getEnv("JWT_REFRESH_SECRET");
+export const JWT_SECRET = getEnv("JWT_SECRET");
